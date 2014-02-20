@@ -4,7 +4,6 @@ var config = require('./config.json');
 var irc = require('irc');
 var tutor = require('tutor');
 
-
 var bot = new irc.Client(
     config.server ,
     config.botName ,
@@ -15,7 +14,9 @@ var bot = new irc.Client(
     }
 );
 
+//Aux funcs
 var repeatStr = function( str , n ) { return new Array( n + 1 ).join( str ); };
+var sort      = function( _1 , _2 ) { return _2 < _1; };
 
 var say = function (msg, from, to) {
     var dest = to === config.botName ? from : config.channels[0];
@@ -53,7 +54,7 @@ var pickCards = function ( cardList , n ) {
         }
 
         idxs.push( idx );
-        idxs.sort(function( _1 , _2 ) { return _2 < _1; });
+        idxs.sort( sort );
         cardsArr.push( cardList[ idx ].name );
     }
 
@@ -61,7 +62,7 @@ var pickCards = function ( cardList , n ) {
 };
 
 var openBooster = function ( cmd ) {
-    var cardsList = sets[ cmd.minor ];
+    var cardsList = sets[ cmd.minor.toLowerCase( ) ];
 
     var token  = Math.random( ) > 0.5;
     var foil   = Math.random( ) > 0.7;
@@ -69,7 +70,7 @@ var openBooster = function ( cmd ) {
 
     foil && say( 'foil:\n!card ' + pickCards( cardsList.cards )[ 0 ] , cmd.from, cmd.to );
 
-    say( '!card ' + pickCards( cardsList[ mythic ? 'Mythic Rare' : 'Rare' ] )[ 0 ] , cmd.from, cmd.to );
+    say( '!card ' + pickCards( cardsList[ cardsList[ 'Mythic Rare' ].length && mythic ? 'Mythic Rare' : 'Rare' ] )[ 0 ] , cmd.from, cmd.to );
 
     say( '!card ' + pickCards( cardsList.Uncommon , 3 ).join( '\n!card ' ) , cmd.from, cmd.to );
     say( '!card ' + pickCards( cardsList.Common , foil ? 9 : 10 ).join( '\n!card ' ) , cmd.from, cmd.to );
@@ -77,20 +78,22 @@ var openBooster = function ( cmd ) {
 
 var setInfo = function( cmd ) {
     var setName = cmd.minor;
-    var cardsList = sets[ setName ];
+    var cardsList = sets[ setName.toLowerCase( ) ];
 
     var total    = cardsList.cards.length;
     var mythic   = cardsList[ 'Mythic Rare' ].length;
-    var probM    = ( 1 / 8 + mythic / 7 / total ) * 100;
-    var probMr   = probM / mythic;
     var rare     = cardsList.Rare.length;
-    var probR    = ( 7 / 8 + rare / 7 / total ) * 100;
-    var probRr   = probR / rare;
     var uncommon = cardsList.Uncommon.length;
-    var probU    = ( 3 + uncommon / 7 / total ) * 100;
-    var probUr   = probU / uncommon;
     var common   = cardsList.Common.length;
+
+    var probM    = ( 1 / 8 + mythic / 7 / total ) * 100;
+    var probR    = ( 7 / 8 + rare / 7 / total ) * 100;
+    var probU    = ( 3 + uncommon / 7 / total ) * 100;
     var probC    = ( ( 9 * 6 + 8 ) / 7 + common / 7 / total ) * 100;
+
+    var probMr   = probM / mythic;
+    var probRr   = probR / rare;
+    var probUr   = probU / uncommon;
     var probCr   = probC / common;
 
     say( setName + ' numbers:\n' +
@@ -98,15 +101,13 @@ var setInfo = function( cmd ) {
          '\tMythic cards:\t\t\t' + mythic + '\n' +
          '\tRare cards:\t\t\t' + rare + '\n' +
          '\tUncommon cards:\t' + uncommon + '\n' +
-         '\tCommon cards:\t\t' + common , cmd.from, cmd.to );
-
-    say( 'Probability when opening a booster:\n' +
+         '\tCommon cards:\t\t' + common + '\n' +
+         'Probability when opening a booster:\n' +
          '\tMythic card:\t\t' + probM.toFixed( 1 ) + '% (' + probMr.toFixed( 1 ) + '%)\n' +
          '\tRare card:\t\t\t' + probR.toFixed( 1 ) + '% (' + probRr.toFixed( 1 ) + '%)\n' +
          '\tUncommon card:\t' + probU.toFixed( 1 ) + '% (' + probUr.toFixed( 1 ) + '%)\n' +
-         '\tCommon card:\t' + probC.toFixed( 1 ) + '% (' + probCr.toFixed( 1 ) + '%)' , cmd.from, cmd.to );
-
-    say( 'Probability when opening a booster box:\n' +
+         '\tCommon card:\t' + probC.toFixed( 1 ) + '% (' + probCr.toFixed( 1 ) + '%)\n' +
+         'Probability when opening a booster box:\n' +
          '\tMythic card:\t\t' + ( probM * 36 ).toFixed( 1 ) + '% (' + ( probMr * 36 ).toFixed( 1 ) + '%)\n' +
          '\tRare card:\t\t\t' + ( probR * 36 ).toFixed( 1 ) + '% (' + ( probRr * 36 ).toFixed( 1 ) + '%)\n' +
          '\tUncommon card:\t' + ( probU * 36 ).toFixed( 1 ) + '% (' + ( probUr * 36 ).toFixed( 1 ) + '%)\n' +
@@ -114,11 +115,13 @@ var setInfo = function( cmd ) {
 };
 
 var cardInfo = function( cmd ) {
-    var card = cards[ cmd.minor ];
+    var card = cards[ cmd.minor.toLowerCase( ) ];
 
     var nLen = card.name.length;
+
     var type = card.types + ( card.subtypes.length ? ' - ' + card.subtypes : '' );
     var tLen = type.length;
+
     var mLen = Math.max( nLen , tLen , 20 );
     var mTab = repeatStr( '\t' , Math.floor( mLen / 4 ) + 3 );
 
@@ -129,7 +132,15 @@ var cardInfo = function( cmd ) {
          ( card.loyalty ? mTab + card.loyalty : '' ) , cmd.from, cmd.to );
 };
 
+var setCard = function( cardName , card ) {
+    cardName = cardName.toLowerCase( );
+
+    cards[ cardName ] = card;
+};
+
 var setSet = function ( setName , cardsList ) {
+    setName = setName.toLowerCase( );
+
     sets[ setName ] = {
         cards         : cardsList ,
         'Mythic Rare' : [ ] ,
@@ -150,14 +161,10 @@ var setSet = function ( setName , cardsList ) {
     delete sets[ setName ].Land;
 };
 
-var setCard = function( cardName , card ) {
-    cards[ cardName ] = card;
-};
-
 var tutorSetBypass = function( cmd , cb ) {
     var setName = cmd.minor;
 
-    sets[ setName ] ? cb( cmd ) : tutor.set( setName , function ( err , cardsList ) {
+    sets[ setName.toLowerCase( ) ] ? cb( cmd ) : tutor.set( setName , function ( err , cardsList ) {
         if ( err || cardsList.length < 2 ) { // somehow this returns cardsList = [null] lulz
             say( 'Wrong set name?' );
 
@@ -177,21 +184,21 @@ var executeCmd = function (cmd) {
                  '\t!booster <set name>\n' +
                  '\t!card <card name>\n' +
                  '\t!set <set name>\n' +
-                 '\t!FNM <tornament type> (not implemented yet)' );
+                 '\t!FNM <tornament type> (not implemented yet)' , cmd.from , cmd.to );
 
             break;
         case 'FNM':
             if (!cmd.minor) {
-                say('Usage: !FNM <Draft|Sealed>');
+                say( 'Usage: !FNM <Draft|Sealed>' , cmd.from , cmd.to );
 
                 break;
             }
 
-            say( 'Not implemented yet!' );
+            say( 'Not implemented yet!' , cmd.from , cmd.to );
             break;
         case 'booster':
             if (!cmd.minor) {
-                say('Usage: !booster <set name>');
+                say( 'Usage: !booster <set name>' , cmd.from , cmd.to );
 
                 break;
             }
@@ -200,7 +207,7 @@ var executeCmd = function (cmd) {
             break;
         case 'set':
             if (!cmd.minor) {
-                say('Usage: !set <set name>');
+                say( 'Usage: !set <set name>' , cmd.from , cmd.to );
 
                 break;
             }
@@ -209,16 +216,16 @@ var executeCmd = function (cmd) {
             break;
         case 'card':
             if (!cmd.minor) {
-                say('Usage: !card <card name>');
+                say( 'Usage: !card <card name>' , cmd.from , cmd.to );
 
                 break;
             }
 
             var cardName = cmd.minor;
 
-            cards[ cardName ] ? cardInfo( cmd ) : tutor.card(cmd.minor, function (err, card) {
+            cards[ cardName.toLowerCase( ) ] ? cardInfo( cmd ) : tutor.card(cmd.minor, function (err, card) {
                 if ( err ) {
-                    say( 'Card not found!' );
+                    say( 'Card not found!' , cmd.from , cmd.to );
 
                     return;
                 }
@@ -249,8 +256,6 @@ bot.addListener('message', function (from, to, message) {
             cmd.to   = to;
 
             executeCmd( cmd );
-        } else {
-            say( 'Command unkown or incorrect.' );
         }
     }
 });
