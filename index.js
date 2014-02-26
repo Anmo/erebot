@@ -4,14 +4,18 @@ var config = require('./config.json');
 var irc = require('irc');
 var tutor = require('tutor');
 
+var opt = {
+    secure               : true ,
+    password             : config.pass ,
+    channels             : config.channels ,
+    floodProtection      : true ,
+    floodProtectionDelay : 1000
+};
+
 var bot = new irc.Client(
     config.server ,
     config.botName ,
-    {
-        channels             : config.channels ,
-        floodProtection      : true ,
-        floodProtectionDelay : 1000
-    }
+    opt
 );
 
 //Aux funcs
@@ -30,7 +34,7 @@ var parseCommand = function (str, from, to) {
     var cmd = {};
     var parts = str.split(' ');
 
-    cmd.major = parts.shift();
+    cmd.major = parts.shift( );
     cmd.minor = parts.join( ' ' );
     cmd.from = from;
     cmd.to = to;
@@ -184,7 +188,7 @@ var executeCmd = function (cmd) {
                  '\t!booster <set name>\n' +
                  '\t!card <card name>\n' +
                  '\t!set <set name>\n' +
-                 '\t!FNM <tornament type> (not implemented yet)' , cmd.from , cmd.to );
+                 '\t!FNM <tournament type> (not implemented yet)' , cmd.from , cmd.to );
 
             break;
         case 'FNM':
@@ -247,7 +251,7 @@ bot.addListener('join', function (channel, who) {
     }
 });
 
-bot.addListener('message', function (from, to, message) {
+bot.addListener('message', function( from , to , message ) {
     if ( message.charAt( 0 ) === '!' && message.length > 1 ) {
         var cmd = parseCommand( message.substring( 1 ) );
 
